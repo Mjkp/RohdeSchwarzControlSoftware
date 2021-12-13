@@ -1,7 +1,7 @@
 # RohdeSchwarzControlSoftware
 
 ## python packages
-* RsInstrument
+* [RsInstrument](https://pypi.org/project/RsInstrument/)
 * Numpy
 * Pandas
 * Plotly
