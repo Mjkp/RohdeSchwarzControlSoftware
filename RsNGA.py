@@ -128,7 +128,7 @@ class RsNGA:
         ch = 1 if self.channel_fusion_mode != "OFF" else channel # for serial and parallel channel is always 1
         self.setVoltageCurrent(max_v,max_i,ch,poweron)
         start_time = int(time.time())
-        prev_time = -1 # negative since it has not started counting
+        prev_time = -1 # negative 1 since it has not started counting
         while (time.time()<(start_time+duration)):
             curr_time = int(time.time()-start_time)
             if(curr_time>prev_time):
@@ -149,6 +149,7 @@ class RsNGA:
         print("!!KeyboardInterrupt has been caught. powering OFF the instrument, and resetting...!!")
         self.powerOFF()
         self.instr.close()
+        self.saveCSV(self.data["ch1"],"auto-save")
         exit(0)
     
     def saveCSV(self,data,file_name= "data"):

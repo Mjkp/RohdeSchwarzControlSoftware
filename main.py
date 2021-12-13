@@ -17,7 +17,7 @@ MODEL = 'USB0::0x0AAD::0x0197::5601.8002k05-101076::INSTR'
 
 powersupply = RsNGA(MODEL,logmode=LOG,mode=INST_MODE,debouncing=INSTR_DEBOUNCING)
 powersupply.logData(MAX_VOLTAGE,MAX_CURRENT,POWER_DURATION,channel=CH,poweron=True,decimal =DECIMAL_VAL,stop_at_plateau=False,tolerance=DERIVATIVE_TOLERANCE,plat_distance=PLATEAU_DURATION,save_csv=True,file_name="data_1")
-powersupply.instr.close()
+powersupply.closePowerSupply()
 
 
 #plot data
@@ -28,6 +28,7 @@ fig.add_trace(go.Scatter(x = powersupply.data[f"ch{CH}"]["seconds"], y = powersu
 fig.add_trace(go.Scatter(x = powersupply.data[f"ch{CH}"]["seconds"], y = powersupply.derivative), row=4, col=1)
 fig.add_trace(go.Scatter(x = powersupply.plateua_x, y = powersupply.plateua_y,marker = dict(color = "blue",size = 7),mode = "markers"),row = 4, col = 1)
 fig.update_layout(height= 1200,width=1000,title_text = "width: 0.7, length: 3 scissors, conductive height: 5layers, SMP height: 2 layers")
+
 fig['layout']['xaxis']['title']='seconds(t)'
 fig['layout']['xaxis2']['title']='seconds(t)'
 fig['layout']['xaxis3']['title']='seconds(t)'
