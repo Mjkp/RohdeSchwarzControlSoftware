@@ -45,7 +45,7 @@ class RsNGA:
 
     def resetInstrument(self):
         self.instr.reset()
-        time.sleep(self.debounce)       
+        time.sleep(self.debounce*2) # it takes a while for the hardware to reset
 
     def setFusionMode(self,set_mode="OFF"):
         #NOTE if the output cables are not connected properly, the power supply will give hardware error, and you have to restart the device.
