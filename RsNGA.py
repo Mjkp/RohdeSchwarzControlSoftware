@@ -2,7 +2,6 @@ from RsInstrument import *
 from os import write
 import numpy as np
 import time, signal, csv
-import pandas as pd
 
 class RsNGA:    
     def __init__(self,model,t_out=3000,logmode=False,mode = "OFF", debouncing = 1):
@@ -15,7 +14,7 @@ class RsNGA:
         self.channel_fusion_mode = mode
         self.plateau_y =[]
         self.platuau_x =[]
-
+        self.derivative =None
         try:
             self.instr = RsInstrument(self.power_supply_model,True,False)
             RsInstrument.assert_minimum_version('1.14.0')
@@ -102,9 +101,10 @@ class RsNGA:
         time.sleep(self.debounce)
 
     def detectPlateau(self,ch,tolerance=0.01, plat_distance=2, x = "seconds",y="power" ):
+        import pandas as pd
+        
         df = pd.DataFrame.from_dict(self.data[f"ch{ch}"])
         self.derivative  = np.diff(df[y]/df[x]) 
-        # derivative  = np.diff(np.array(self.data[f"ch{ch}"][y])/np.array(self.data[f"ch{ch}"][x])) 
         self.plateua_y=[py for _,py in enumerate(list(self.derivative))if abs(py)<=tolerance]
         self.plateua_x=[px for px,py in enumerate(list(self.derivative))if abs(py)<=tolerance]
         if(len(self.plateua_x)>1): # if it starts to reach the plateau
