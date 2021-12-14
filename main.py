@@ -3,7 +3,7 @@ from RsNGA import *
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-POWER_DURATION = 120 # in seconds
+POWER_DURATION = 180 # in seconds
 CH = 1
 MAX_VOLTAGE = 200 
 MAX_CURRENT = 0.100 # in amps
