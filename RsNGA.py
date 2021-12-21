@@ -39,7 +39,7 @@ class RsNGA:
             self.instr.logger.log_to_console = False
             self.instr.logger.mode = LoggingMode.Off
 
-        self.resetInstrument()
+        # self.resetInstrument()
         self.setFusionMode(self.channel_fusion_mode)
 
     def resetInstrument(self):
@@ -59,7 +59,7 @@ class RsNGA:
     #close power supply
     def closePowerSupply(self):
         time.sleep(self.debounce)
-        self.instr.reset() # sets back to Normal mode and 20V 2A
+        # self.instr.reset() # resets all the device setting, including the memories
         self.instr.close()
 
     def powerON(self):
@@ -137,10 +137,11 @@ class RsNGA:
                 self.data[f"ch{ch}"]["current"].append(round(i,decimal))
                 self.data[f"ch{ch}"]["power"].append(round(p,decimal))
                 self.data[f"ch{ch}"]["seconds"].append(curr_time)
-                if(stop_at_plateau and len(self.data[f"ch{ch}"]["seconds"])>1): # after the data is accumulated
+                if(len(self.data[f"ch{ch}"]["seconds"])>1): # after the data is accumulated
                     if(self.detectPlateau(ch,tolerance,plat_distance,dx,dy)):# checking plateau for every second
-                        print("it has reached its plateau!")
-                        break
+                        if(stop_at_plateau):
+                            print("it has reached its plateau!")
+                            break
                 prev_time = curr_time
         self.powerOFF()
         if (save_csv): self.saveCSV(self.data[f"ch{ch}"],file_name)
