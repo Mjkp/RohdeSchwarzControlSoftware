@@ -25,6 +25,8 @@ class RsNGA:
             print(e.args[0])
             print("mate, your power supply might be OFF or not connected to your PC")
             exit(1)
+        # self.resetInstrument()
+
 
         # set log mode
         self.instr.instrument_status_checking = False
@@ -39,12 +41,11 @@ class RsNGA:
             self.instr.logger.log_to_console = False
             self.instr.logger.mode = LoggingMode.Off
 
-        # self.resetInstrument()
         self.setFusionMode(self.channel_fusion_mode)
 
     def resetInstrument(self):
         self.instr.reset()
-        time.sleep(self.debounce*2) # it takes a while for the hardware to reset
+        time.sleep(self.debounce*3) # it takes a while for the hardware to reset
 
     def setFusionMode(self,set_mode="OFF"):
         #NOTE if the output cables are not connected properly, the power supply will give hardware error, and you have to restart the device.
@@ -59,7 +60,7 @@ class RsNGA:
     #close power supply
     def closePowerSupply(self):
         time.sleep(self.debounce)
-        # self.instr.reset() # resets all the device setting, including the memories
+        self.resetInstrument() # resets all the device setting, including the memories
         self.instr.close()
 
     def powerON(self):
@@ -142,6 +143,8 @@ class RsNGA:
                         if(stop_at_plateau):
                             print("it has reached its plateau!")
                             break
+                        else:
+                            continue
                 prev_time = curr_time
         self.powerOFF()
         if (save_csv): self.saveCSV(self.data[f"ch{ch}"],file_name)
