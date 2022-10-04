@@ -1,10 +1,7 @@
-from asyncio.windows_events import NULL
-from re import I
 from RsInstrument import *
 from os import write
 import numpy as np
 import time, signal, csv
-import itertools
 
 class RsNGA:    
     def __init__(self,model,t_out=3000,logmode=False,mode = "OFF", debouncing = 1):
@@ -29,6 +26,7 @@ class RsNGA:
             print("mate, your power supply might be OFF or not connected to your PC")
             exit(1)
         # self.resetInstrument()
+
 
         # set log mode
         self.instr.instrument_status_checking = False
@@ -86,8 +84,26 @@ class RsNGA:
         self.instr.write_str_with_opc(f'INST OUT{ch}')
         return float(self.instr.query_str_with_opc("MEAS:POW?"))
 
+    #set voltage, current
+    def setVoltageCurrent(self,v,i,ch,poweron=False,duration=0):
+        # check the channel fusion modemode 
+        '''
+        #NOTE this will delay the hardware so it is best to check only once at the begining
+        self.channel_fusion_mode = self.instr.query_str_with_opc("OUTP:FUS?")
+        ch = 1 if self.channel_fusion_mode != "OFF" else ch_ # for serial and parallel channel is always 1
+        '''
+        self.instr.write_str_with_opc(f'INST OUT{ch}') # not using setFuseChannel function, since one might want to power the both channel at the same time
+        self.instr.write_str_with_opc(f'APPLY "{v},{i}"')
+        if(poweron):
+            self.powerON()
+            time.sleep(duration)
+            if(duration>0):
+                self.powerOFF()
+        time.sleep(self.debounce)
+
     def detectPlateau(self,ch,tolerance=0.01, plat_distance=2, x = "seconds",y="power" ):
         import pandas as pd
+        
         df = pd.DataFrame.from_dict(self.data[f"ch{ch}"])
         self.derivative  = np.diff(df[y]/df[x]) 
         self.plateua_y=[py for _,py in enumerate(list(self.derivative))if abs(py)<=tolerance]
@@ -100,20 +116,18 @@ class RsNGA:
             else:
                 print(f"plateau for {self.plat_d} seconds")
                 return False
-
+    
     # get all data
     def getAllData(self,ch):
         return self.getVoltage(ch) , self.getCurrent(ch), self.getPower(ch)
 
     def setFuseChannel(self, ch):
         self.instr.write_str_with_opc(f'INST OUT{ch}')
-
-    '''
+    
     def logData(self,max_v,max_i,duration,channel = 1,poweron = True,decimal = 3,stop_at_plateau = False,tolerance = 0.01,plat_distance = 3,dx ="seconds",dy="power", save_csv = False, file_name = "data"):
         self.channel_fusion_mode = self.instr.query_str_with_opc("OUTP:FUS?")
         ch = 1 if self.channel_fusion_mode != "OFF" else channel # for serial and parallel channel is always 1
-
-        self.setVoltageCurrent(ch,max_v,max_i,poweron) #do not put duration in the parameter
+        self.setVoltageCurrent(max_v,max_i,ch,poweron)
         start_time = int(time.time())
         prev_time = -1 # negative 1 since it has not started counting
         while (time.time()<(start_time+duration)):
@@ -134,90 +148,6 @@ class RsNGA:
                 prev_time = curr_time
         self.powerOFF()
         if (save_csv): self.saveCSV(self.data[f"ch{ch}"],file_name)
-
-    #set voltage, current
-    def setVoltageCurrent(self,v,i,ch,poweron=False,duration=0):
-        
-        self.instr.write_str_with_opc(f'INST OUT{ch}') # not using setFuseChannel function, since one might want to power the both channel at the same time
-        self.instr.write_str_with_opc(f'APPLY "{v},{i}"')
-        if(poweron):
-            self.powerON()
-            time.sleep(duration)
-            if(duration>0):
-                self.powerOFF()
-        time.sleep(self.debounce)
-    
-    
-    def setVoltageCurrent(self,ch, v_ch1,i_ch1,v_ch2=0, i_ch2=0, dual_channel = False,poweron = True,duration = 0):
-        
-        # check the channel fusion modemode 
-        #NOTE this will delay the hardware so it is best to check only once at the begining
-        #self.channel_fusion_mode = self.instr.query_str_with_opc("OUTP:FUS?")
-        #ch = 1 if self.channel_fusion_mode != "OFF" else ch_ # for serial and parallel channel is always 1
-        
-
-        if (dual_channel):# not using setFuseChannel function, since one might want to power the both channel at the same time
-            self.instr.write_str_with_opc(f'INST OUT{1}') 
-            self.instr.write_str_with_opc(f'APPLY "{v_ch1},{i_ch1}"')
-            if(poweron): self.powerON()
-
-            self.instr.write_str_with_opc(f'INST OUT{2}') 
-            self.instr.write_str_with_opc(f'APPLY "{v_ch2},{i_ch2}"')
-            if(poweron): self.powerON()
-
-        if not (dual_channel):
-            self.instr.write_str_with_opc(f'INST OUT{ch}') # channel 1 defualt, not using setFuseChannel function, since one might want to power the both channel at the same time
-            self.instr.write_str_with_opc(f'APPLY "{v_ch1},{i_ch1}"')
-            if(poweron): self.powerON()
-
-        if(poweron):
-            # self.powerON()
-            time.sleep(duration)
-            if(duration>0):
-                self.powerOFF()
-        # time.sleep(self.debounce)
-    '''
-
-    def powerChannels(self, v_ch1, i_ch1, v_ch2=0, i_ch2=0, ch = 1, duration=0, log_data = False, dual_channel = False, poweron = True, decimal = 3, file_name = "data"): #stop_at_plateau = False, tolerance = 0.01, plat_distance = 3, dx ="seconds", dy="power", 
-        self.channel_fusion_mode = self.instr.query_str_with_opc("OUTP:FUS?")
-        channels = [1,2] if self.channel_fusion_mode == "OFF" and dual_channel == True else [ch] # for serial and parallel channel is always 1'
-        voltages = [v_ch1,v_ch2] if dual_channel == True else [v_ch1]
-        currents = [i_ch1,i_ch2] if dual_channel == True else [i_ch1]
-
-        for v,i,c in zip(voltages,currents,channels):
-            self.instr.write_str_with_opc(f'INST OUT{c}') 
-            self.instr.write_str_with_opc(f'APPLY "{v},{i}"')
-            if(poweron): self.powerON()
-        if(duration>0):
-            start_time = int(time.time())
-            prev_time = -1 # negative 1 since it has not started counting
-            while (time.time()<(start_time+duration)):
-                curr_time = int(time.time()-start_time)
-                if(curr_time>prev_time):
-                    if(log_data):
-                        for _c in channels:
-                            self.logVoltageCurrentPower(_c,decimal,curr_time) 
-
-                    # if(len(self.data[f"ch{ch}"]["seconds"])>1): # after the data is accumulated
-                    #     if(self.detectPlateau(ch,tolerance,plat_distance,dx,dy)):# checking plateau for every second
-                    #         if(stop_at_plateau):
-                    #             print("it has reached its plateau!")
-                    #             break
-                    #         else:
-                    #             continue
-
-                    prev_time = curr_time
-            self.powerOFF()            
-        if (log_data): 
-            for _c in channels: self.saveCSV(self.data[f"ch{_c}"],file_name+f"_ch{_c}")
-
-    def logVoltageCurrentPower(self,ch,value_decimal,seconds):
-        _v,_i,_p = self.getAllData(ch)
-        self.data[f"ch{ch}"]["voltage"].append(round(_v,value_decimal))
-        self.data[f"ch{ch}"]["current"].append(round(_i,value_decimal))
-        self.data[f"ch{ch}"]["power"].append(round(_p,value_decimal))
-        self.data[f"ch{ch}"]["seconds"].append(seconds)
-
 
     def keyboardInterruptHandler(self, signal, frame):
         print("!!KeyboardInterrupt has been caught. powering OFF the instrument, and resetting...!!")
@@ -246,7 +176,7 @@ if __name__ == "__main__":
     INST_MODE = "SERIES"
 
     powersupply = RsNGA(MODEL,logmode=LOG,mode=INST_MODE,debouncing=INSTR_DEBOUNCING)
-    # powersupply.logData(MAX_VOLTAGE,MAX_CURRENT,POWER_DURATION,channel=CH,poweron=True,decimal =DECIMAL_VAL,stop_at_plateau=True,save_csv=True)
+    powersupply.logData(MAX_VOLTAGE,MAX_CURRENT,POWER_DURATION,channel=CH,poweron=True,decimal =DECIMAL_VAL,stop_at_plateau=True,save_csv=True)
     # powersupply.saveCSV(powersupply.data["ch1"],"data_1")
     # powersupply.setVoltageCurrent(MAX_VOLTAGE,MAX_CURRENT,CH,poweron=True,duration=10)
 
